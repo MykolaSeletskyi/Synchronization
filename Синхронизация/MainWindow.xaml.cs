@@ -11,15 +11,24 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Синхронизация
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    class ReportFile
+    {
+        public int NumberOfNumbers { get; set; }
+        public long FileLength { get; set; }
+        public List<int> Numbers { get; set; } = new List<int>();
+    }
     public partial class MainWindow : Window
     {
         void GenerateNumbers(object obj)
@@ -74,7 +83,6 @@ namespace Синхронизация
                         }
                     }
                 }
-
             }
             mutex.ReleaseMutex();
         }
@@ -98,16 +106,54 @@ namespace Синхронизация
             }
             mutex.ReleaseMutex();
         }
+
+        void Report(object obj)
+        {
+            Mutex mutex = obj as Mutex;
+            mutex.WaitOne();
+
+            List<ReportFile> reportFiles = new List<ReportFile>();
+            string[] Paths = { "test1.txt", "test2.txt", "test3.txt" };
+
+            foreach (string path in Paths)
+            {
+                ReportFile tmpReportFile = new ReportFile();
+                using (StreamReader sr = new StreamReader(path))
+                {
+                    string strTmp;
+                    while ((strTmp = sr.ReadLine()) != null)
+                    {
+                        tmpReportFile.Numbers.Add(int.Parse(strTmp));
+                    }
+                }
+                tmpReportFile.NumberOfNumbers = tmpReportFile.Numbers.Count;
+                tmpReportFile.FileLength = new FileInfo(path).Length;
+                reportFiles.Add(tmpReportFile);
+            }
+
+            string jsonString = JsonSerializer.Serialize(reportFiles);
+            File.WriteAllText("report.json", jsonString);
+
+            mutex.ReleaseMutex();
+        }
         public MainWindow()
         {
             InitializeComponent();
-            Mutex mutex = new Mutex(false,"");
+            Mutex mutex = new Mutex(false, "");
             Thread GenerateNumbersAndSaveFile = new Thread(GenerateNumbers);
             Thread SearchPrimeNumbers = new Thread(PrimeNumbers);
             Thread FilteringPrimeNumbers_ = new Thread(FilteringPrimeNumbers);
+            Thread Reports = new Thread(Report);
+
             GenerateNumbersAndSaveFile.Start(mutex);
             SearchPrimeNumbers.Start(mutex);
             FilteringPrimeNumbers_.Start(mutex);
+            Reports.Start(mutex);
+
+            mutex.WaitOne();
+
+            string jsonString = File.ReadAllText("report.json");
+            DataGrid.ItemsSource = JsonSerializer.Deserialize<List<ReportFile>>(jsonString);
         }
     }
 }
