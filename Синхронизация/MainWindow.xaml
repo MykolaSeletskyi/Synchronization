@@ -5,8 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Синхронизация"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <DataGrid x:Name="DataGrid">
-        
+        Title="MainWindow" Height="450" Width="270">
+    <DataGrid x:Name="DataGrid" AutoGenerateColumns="False">
+        <DataGrid.Columns>
+            <DataGridTextColumn Binding="{Binding NumberOfNumbers}" Header="Number of numbers" Width="120"/>
+            <DataGridTextColumn Binding="{Binding FileLength}" Header="File length" Width="70"/>
+            <DataGridTemplateColumn Header="Numbers" SortMemberPath="Date" Width="60">
+                <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate>
+                        <ComboBox ItemsSource="{Binding Numbers}"/>
+                    </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+        </DataGrid.Columns>
     </DataGrid>
 </Window>
